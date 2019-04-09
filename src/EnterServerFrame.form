@@ -59,7 +59,7 @@
     </Component>
     <Component class="javax.swing.JLabel" name="jLabel1">
       <Properties>
-        <Property name="text" type="java.lang.String" value="IP Address"/>
+        <Property name="text" type="java.lang.String" value="Server IP Address"/>
       </Properties>
     </Component>
     <Component class="javax.swing.JButton" name="connectButton">

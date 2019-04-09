@@ -17,7 +17,7 @@ public class EnterServerFrame extends javax.swing.JFrame {
 
         iptextfield.setText("localhost");
 
-        jLabel1.setText("IP Address");
+        jLabel1.setText("Server IP Address");
 
         connectButton.setText("Connect");
         connectButton.addActionListener(new java.awt.event.ActionListener() {
