@@ -15,6 +15,13 @@ public class GameFrame extends javax.swing.JFrame implements Runnable {
         initComponents();
         try {
             sock = new Socket(ip, 6010);
+            ObjectInputStream inputstream = new ObjectInputStream(sock.getInputStream());
+            int turn = inputstream.readInt();
+            if (turn == 1) {
+                thisPlayerTurn = true;
+            } else {
+                thisPlayerTurn = false;
+            }
         } catch (IOException e) {
         }
         thread = new Thread(this);
@@ -25,21 +32,53 @@ public class GameFrame extends javax.swing.JFrame implements Runnable {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        jLabel1 = new javax.swing.JLabel();
+        jButton1 = new javax.swing.JButton();
+
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+
+        jLabel1.setText("jLabel1");
+
+        jButton1.setText("Test");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
+            .addGroup(layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(101, 101, 101)
+                        .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 97, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(115, 115, 115)
+                        .addComponent(jButton1)))
+                .addContainerGap(202, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(83, 83, 83)
+                .addComponent(jLabel1)
+                .addGap(53, 53, 53)
+                .addComponent(jButton1)
+                .addContainerGap(127, Short.MAX_VALUE))
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        if (thisPlayerTurn) {
+            Action action = new Action("blah");
+            sendTurnData(action);
+        }
+    }//GEN-LAST:event_jButton1ActionPerformed
 
     public void run() {
         while (true) {
@@ -52,22 +91,26 @@ public class GameFrame extends javax.swing.JFrame implements Runnable {
             try {
                 ObjectInputStream inputstream = new ObjectInputStream(sock.getInputStream());
                 Action obj = (Action) inputstream.readObject();
+                jLabel1.setText(obj.blah);
                 System.out.println(obj.blah);
             } catch (Exception e) {
+                System.out.println(e);
             }
         }
     }
 
-    private void sendTurnData() {
-        /*
-        ObjectOutputStream toServer = new ObjectOutputStream(sock.getOutputStream());
-        System.out.println("Enter a string to send");
-        Action obj = new Action(input.next());
-        toServer.writeObject(obj);
-        toServer.flush();
-         */
+    private void sendTurnData(Action action) {
+        try {
+            ObjectOutputStream toServer = new ObjectOutputStream(sock.getOutputStream());
+            toServer.writeObject(action);
+            toServer.flush();
+        } catch (IOException e) {
+            System.out.println(e);
+        }
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton jButton1;
+    private javax.swing.JLabel jLabel1;
     // End of variables declaration//GEN-END:variables
 }
