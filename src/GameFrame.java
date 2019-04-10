@@ -17,22 +17,38 @@ public class GameFrame extends JFrame implements Runnable, MouseListener {
     private boolean thisPlayerTurn;
     private boolean connected;
     private Socket sock;
+    private int side; //1 is Red, 2 is White
+    private GameBoard board;
+    private int clickX;
+    private int clickY;
+    private int currentPieceX;
+    private int currentPieceY;
 
     private char[][] boardpieces;
 
     public GameFrame(String ip) {
         initComponents();
+        /*
         try {
             sock = new Socket(ip, 6010);
             ObjectInputStream inputstream = new ObjectInputStream(sock.getInputStream());
             int turn = inputstream.readInt();
+           
             if (turn == 1) {
                 thisPlayerTurn = true;
+                side = 1;
+                statusLabel.setText("Opponent connected. You are Red. You go first!");
             } else {
                 thisPlayerTurn = false;
+                side = 2;
+                statusLabel.setText("Opponent connected. You are White. Opponent's turn!");
             }
+
         } catch (IOException e) {
         }
+         */
+        thisPlayerTurn = true;
+        side = 1;
         thread = new Thread(this);
         thread.start();
     }
@@ -42,14 +58,17 @@ public class GameFrame extends JFrame implements Runnable, MouseListener {
     private void initComponents() {
 
         jLabel1 = new javax.swing.JLabel();
-        jButton1 = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
+        endTurnButton = new javax.swing.JButton();
+        surrenderButton = new javax.swing.JButton();
+        statusLabel = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
-        jButton1.setText("End Turn");
+        endTurnButton.setText("End Turn");
 
-        jButton2.setText("Surrender");
+        surrenderButton.setText("Surrender");
+
+        statusLabel.setText("Waiting on opponent...");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -59,21 +78,28 @@ public class GameFrame extends JFrame implements Runnable, MouseListener {
                 .addComponent(jLabel1)
                 .addGap(0, 0, Short.MAX_VALUE))
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap(48, Short.MAX_VALUE)
-                .addComponent(jButton1)
-                .addGap(66, 66, 66)
-                .addComponent(jButton2)
-                .addGap(50, 50, 50))
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(53, 53, 53)
+                        .addComponent(endTurnButton)
+                        .addGap(55, 55, 55)
+                        .addComponent(surrenderButton))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(34, 34, 34)
+                        .addComponent(statusLabel)))
+                .addContainerGap(56, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addComponent(jLabel1)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 372, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 324, Short.MAX_VALUE)
+                .addComponent(statusLabel)
+                .addGap(60, 60, 60)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButton1)
-                    .addComponent(jButton2))
-                .addGap(51, 51, 51))
+                    .addComponent(endTurnButton)
+                    .addComponent(surrenderButton))
+                .addGap(25, 25, 25))
         );
 
         pack();
@@ -106,11 +132,12 @@ public class GameFrame extends JFrame implements Runnable, MouseListener {
 
     public void run() {
         initializeBoard();
-        GameBoard board = new GameBoard(boardpieces);
+        board = new GameBoard(boardpieces);
         board.setVisible(true);
         board.setBounds(0, 0, 320, 320);
         add(board);
         board.repaint();
+        addMouseListener(this);
 
         while (true) {
             //checkOpponentAction();
@@ -140,7 +167,6 @@ public class GameFrame extends JFrame implements Runnable, MouseListener {
 
     @Override
     public void mouseClicked(MouseEvent me) {
-
     }
 
     @Override
@@ -156,17 +182,86 @@ public class GameFrame extends JFrame implements Runnable, MouseListener {
     @Override
     public void mousePressed(MouseEvent me) {
 
+        clickX = me.getX();
+        clickY = me.getY();
+
     }
 
     @Override
     public void mouseReleased(MouseEvent me) {
+        if (clickX < 320 && clickY < 320) {
+            int oldX = clickX / 40;
+            int oldY = clickY / 40;
+            int newX = me.getX() / 40;
+            int newY = me.getY() / 40;
+            System.out.println("Pressed on " + oldX + ", " + oldY);
+            System.out.println("Released on " + newX + ", " + newY);
+            if (checkIfLegitMove(oldX, oldY, newX, newY)) {
+                System.out.println("Success");
+                char movingPiece = boardpieces[oldY][oldX];
+                boardpieces[oldY][oldX] = 0;
+                boardpieces[newY][newX] = movingPiece;
+                currentPieceX = newX;
+                currentPieceY = newY;
+                board.setBoard(boardpieces);
+                board.repaint();
+            } else {
+                System.out.println("Failed");
+            }
+        }
+        clickX = -1;
+        clickY = -1;
+    }
 
+    public boolean checkIfLegitMove(int oldX, int oldY, int newX, int newY) {
+        if (!thisPlayerTurn) {
+            System.out.println("1");
+            return false;
+        }
+        if (oldX == newX) {
+            System.out.println("2");
+            return false;
+        }
+        System.out.println(boardpieces[newY][newX]);
+        if (boardpieces[newY][newX] != 0) {
+            System.out.println("3");
+            return false;
+
+        }
+        if (side == 1 && boardpieces[oldY][oldX] == 'r' && newY > oldY) {
+            System.out.println("4");
+            return false;
+        }
+        if (side == 2 && boardpieces[oldY][oldX] == 'w' && newY < oldY) {
+            System.out.println("5");
+            return false;
+        }
+        if (Math.abs(oldY - newY) == 1) {
+            return true;
+        } else if (Math.abs(oldY - newY) == 2) {
+            int midX = (oldX + newX) / 2;
+            int midY = (oldY + newY) / 2;
+            if (side == 1) {
+                if (boardpieces[midY][midX] == 'w' || boardpieces[midY][midX] == 'W') {
+                    boardpieces[midY][midX] = 0;
+                    return true;
+                }
+            } else {
+                if (boardpieces[midY][midX] == 'r' || boardpieces[midY][midX] == 'R') {
+                    boardpieces[midY][midX] = 0;
+                    return true;
+                }
+            }
+        }
+        System.out.println("6");
+        return false;
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
+    private javax.swing.JButton endTurnButton;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel statusLabel;
+    private javax.swing.JButton surrenderButton;
     // End of variables declaration//GEN-END:variables
 }
 
@@ -185,9 +280,15 @@ class GameBoard extends JPanel {
             board = ImageIO.read(new File("res\\checkerboard.png"));
             red = ImageIO.read(new File("res\\red.png"));
             white = ImageIO.read(new File("res\\white.png"));
+            redKing = ImageIO.read(new File("res\\redKing.png"));
+            whiteKing = ImageIO.read(new File("res\\whiteKing.png"));
         } catch (IOException e) {
             System.out.println(e);
         }
+    }
+
+    public void setBoard(char[][] boardpieces) {
+        this.boardpieces = boardpieces;
     }
 
     @Override
