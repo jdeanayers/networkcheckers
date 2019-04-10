@@ -5,13 +5,20 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import javax.swing.*;
+import java.awt.Graphics;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import javax.imageio.ImageIO;
 
-public class GameFrame extends javax.swing.JFrame implements Runnable, MouseListener {
+public class GameFrame extends JFrame implements Runnable, MouseListener {
 
     private Thread thread;
     private boolean thisPlayerTurn;
     private boolean connected;
-    Socket sock;
+    private Socket sock;
+    
+    private char[][] boardpieces;
 
     public GameFrame(String ip) {
         initComponents();
@@ -35,56 +42,40 @@ public class GameFrame extends javax.swing.JFrame implements Runnable, MouseList
     private void initComponents() {
 
         jLabel1 = new javax.swing.JLabel();
-        jButton1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-
-        jLabel1.setText("jLabel1");
-
-        jButton1.setText("Test");
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
-            }
-        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(101, 101, 101)
-                        .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 97, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(115, 115, 115)
-                        .addComponent(jButton1)))
-                .addContainerGap(202, Short.MAX_VALUE))
+                .addComponent(jLabel1)
+                .addGap(0, 320, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(83, 83, 83)
                 .addComponent(jLabel1)
-                .addGap(53, 53, 53)
-                .addComponent(jButton1)
-                .addContainerGap(127, Short.MAX_VALUE))
+                .addContainerGap(446, Short.MAX_VALUE))
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        if (thisPlayerTurn) {
-            Action action = new Action("blah");
-            sendTurnData(action);
-        }
-    }//GEN-LAST:event_jButton1ActionPerformed
-
     public void run() {
+        boardpieces = new char[8][8];
+        //r represents red piece, R represents kinged red piece, 
+        //b represents black piece, B represents kinged black piece
+        
+        
+        GameBoard board = new GameBoard();
+        board.setVisible(true);
+        board.setBounds(0, 0, 320, 320);
+        add(board);
+
         while (true) {
-            checkOpponentAction();
+            //checkOpponentAction();
         }
     }
 
@@ -93,7 +84,6 @@ public class GameFrame extends javax.swing.JFrame implements Runnable, MouseList
             try {
                 ObjectInputStream inputstream = new ObjectInputStream(sock.getInputStream());
                 Action obj = (Action) inputstream.readObject();
-                jLabel1.setText(obj.blah);;
             } catch (Exception e) {
                 System.out.println(e);
             }
@@ -136,7 +126,23 @@ public class GameFrame extends javax.swing.JFrame implements Runnable, MouseList
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     // End of variables declaration//GEN-END:variables
+}
+
+class GameBoard extends JPanel {
+
+    public GameBoard() {
+        
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        try {
+            BufferedImage image = ImageIO.read(new File("res\\checkerboard.png"));
+            g.drawImage(image, 0, 0, null);
+        } catch (IOException e) {
+            System.out.println(e);
+        }
+    }
 }
