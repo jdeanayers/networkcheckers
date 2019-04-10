@@ -3,12 +3,14 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.Scanner;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 
-public class GameFrame extends javax.swing.JFrame implements Runnable {
+public class GameFrame extends javax.swing.JFrame implements Runnable, MouseListener {
 
     private Thread thread;
     private boolean thisPlayerTurn;
+    private boolean connected;
     Socket sock;
 
     public GameFrame(String ip) {
@@ -82,17 +84,16 @@ public class GameFrame extends javax.swing.JFrame implements Runnable {
 
     public void run() {
         while (true) {
-            tick();
+            checkOpponentAction();
         }
     }
 
-    private void tick() {
+    private void checkOpponentAction() {
         if (!thisPlayerTurn) {
             try {
                 ObjectInputStream inputstream = new ObjectInputStream(sock.getInputStream());
                 Action obj = (Action) inputstream.readObject();
-                jLabel1.setText(obj.blah);
-                System.out.println(obj.blah);
+                jLabel1.setText(obj.blah);;
             } catch (Exception e) {
                 System.out.println(e);
             }
@@ -107,6 +108,31 @@ public class GameFrame extends javax.swing.JFrame implements Runnable {
         } catch (IOException e) {
             System.out.println(e);
         }
+    }
+
+    @Override
+    public void mouseClicked(MouseEvent me) {
+
+    }
+
+    @Override
+    public void mouseExited(MouseEvent me) {
+
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent me) {
+
+    }
+
+    @Override
+    public void mousePressed(MouseEvent me) {
+
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent me) {
+
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
