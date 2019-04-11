@@ -11,7 +11,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import javax.imageio.ImageIO;
 
-public class GameFrame extends JFrame implements Runnable, MouseListener {
+public class GameFrame extends JFrame implements Runnable {
 
     private Thread thread;
     private boolean thisPlayerTurn;
@@ -19,8 +19,6 @@ public class GameFrame extends JFrame implements Runnable, MouseListener {
     private Socket sock;
     private int side; //1 is Red, 2 is White
     private GameBoard board;
-    private int clickX;
-    private int clickY;
     private int currentPieceX;
     private int currentPieceY;
 
@@ -110,34 +108,33 @@ public class GameFrame extends JFrame implements Runnable, MouseListener {
         //r represents red piece, R represents kinged red piece, 
         //w represents white piece, W represents kinged white piece
         for (int i = 1; i < 8; i += 2) {
-            boardpieces[i][0] = 'w';
+            boardpieces[0][i] = 'w';
         }
         for (int i = 0; i < 8; i += 2) {
-            boardpieces[i][1] = 'w';
+            boardpieces[1][i] = 'w';
         }
         for (int i = 1; i < 8; i += 2) {
-            boardpieces[i][2] = 'w';
+            boardpieces[2][i] = 'w';
         }
 
         for (int i = 1; i < 8; i += 2) {
-            boardpieces[i][6] = 'r';
+            boardpieces[6][i] = 'r';
         }
         for (int i = 0; i < 8; i += 2) {
-            boardpieces[i][7] = 'r';
+            boardpieces[7][i] = 'r';
         }
         for (int i = 0; i < 8; i += 2) {
-            boardpieces[i][5] = 'r';
+            boardpieces[5][i] = 'r';
         }
     }
 
     public void run() {
         initializeBoard();
-        board = new GameBoard(boardpieces);
+        board = new GameBoard(boardpieces, this);
         board.setVisible(true);
         board.setBounds(0, 0, 320, 320);
         add(board);
         board.repaint();
-        addMouseListener(this);
 
         while (true) {
             //checkOpponentAction();
@@ -165,8 +162,114 @@ public class GameFrame extends JFrame implements Runnable, MouseListener {
         }
     }
 
+    public void movementAction(int oldX, int oldY, int newX, int newY) {
+        if (checkIfLegitMove(oldX, oldY, newX, newY)) {
+            char movingPiece = boardpieces[oldY][oldX];
+            boardpieces[oldY][oldX] = 0;
+            boardpieces[newY][newX] = movingPiece;
+            currentPieceX = newX;
+            currentPieceY = newY;
+            board.setBoard(boardpieces);
+            board.repaint();
+        }
+    }
+
+    public boolean checkIfLegitMove(int oldX, int oldY, int newX, int newY) {
+        if (!thisPlayerTurn) {
+            return false;
+        }
+        if (oldX == newX) {
+            return false;
+        }
+        System.out.println(boardpieces[oldY][oldX]);
+        if (boardpieces[oldY][oldX] == 0) {
+            return false;
+
+        }
+        if (side == 1 && boardpieces[oldY][oldX] == 'r' && newY > oldY) {
+            return false;
+        }
+        if (side == 2 && boardpieces[oldY][oldX] == 'w' && newY < oldY) {
+            return false;
+        }
+        if (Math.abs(oldY - newY) == 1) {
+            return true;
+        } else if (Math.abs(oldY - newY) == 2) {
+            int midX = (oldX + newX) / 2;
+            int midY = (oldY + newY) / 2;
+            if (side == 1) {
+                if (boardpieces[oldY][oldX] == 'w' || boardpieces[oldY][oldX] == 'W') {
+                    boardpieces[oldY][oldX] = 0;
+                    return true;
+                }
+            } else {
+                if (boardpieces[oldY][oldX] == 'r' || boardpieces[oldY][oldX] == 'R') {
+                    boardpieces[oldY][oldX] = 0;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton endTurnButton;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel statusLabel;
+    private javax.swing.JButton surrenderButton;
+    // End of variables declaration//GEN-END:variables
+}
+
+class GameBoard extends JPanel implements MouseListener {
+
+    char[][] boardpieces;
+    BufferedImage board;
+    BufferedImage red;
+    BufferedImage white;
+    BufferedImage redKing;
+    BufferedImage whiteKing;
+    int clickX;
+    int clickY;
+    GameFrame parent;
+
+    public GameBoard(char[][] boardpieces, GameFrame parent) {
+        this.boardpieces = boardpieces;
+        this.parent = parent;
+        try {
+            board = ImageIO.read(new File("res\\checkerboard.png"));
+            red = ImageIO.read(new File("res\\red.png"));
+            white = ImageIO.read(new File("res\\white.png"));
+            redKing = ImageIO.read(new File("res\\redKing.png"));
+            whiteKing = ImageIO.read(new File("res\\whiteKing.png"));
+        } catch (IOException e) {
+            System.out.println(e);
+        }
+        addMouseListener(this);
+    }
+
+    public void setBoard(char[][] boardpieces) {
+        this.boardpieces = boardpieces;
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        g.drawImage(board, 0, 0, null);
+
+        for (int i = 0; i < boardpieces.length; i++) {
+            for (int k = 0; k < boardpieces.length; k++) {
+                if (boardpieces[i][k] == 'r') {
+                    g.drawImage(red, k * 40, i * 40, null);
+                } else if (boardpieces[i][k] == 'w') {
+                    g.drawImage(white, k * 40, i * 40, null);
+                }
+            }
+        }
+
+    }
+
     @Override
     public void mouseClicked(MouseEvent me) {
+        
     }
 
     @Override
@@ -181,10 +284,8 @@ public class GameFrame extends JFrame implements Runnable, MouseListener {
 
     @Override
     public void mousePressed(MouseEvent me) {
-
         clickX = me.getX();
         clickY = me.getY();
-
     }
 
     @Override
@@ -194,116 +295,7 @@ public class GameFrame extends JFrame implements Runnable, MouseListener {
             int oldY = clickY / 40;
             int newX = me.getX() / 40;
             int newY = me.getY() / 40;
-            System.out.println("Pressed on " + oldX + ", " + oldY);
-            System.out.println("Released on " + newX + ", " + newY);
-            if (checkIfLegitMove(oldX, oldY, newX, newY)) {
-                System.out.println("Success");
-                char movingPiece = boardpieces[oldY][oldX];
-                boardpieces[oldY][oldX] = 0;
-                boardpieces[newY][newX] = movingPiece;
-                currentPieceX = newX;
-                currentPieceY = newY;
-                board.setBoard(boardpieces);
-                board.repaint();
-            } else {
-                System.out.println("Failed");
-            }
+            parent.movementAction(oldX, oldY, newX, newY);
         }
-        clickX = -1;
-        clickY = -1;
-    }
-
-    public boolean checkIfLegitMove(int oldX, int oldY, int newX, int newY) {
-        if (!thisPlayerTurn) {
-            System.out.println("1");
-            return false;
-        }
-        if (oldX == newX) {
-            System.out.println("2");
-            return false;
-        }
-        System.out.println(boardpieces[newY][newX]);
-        if (boardpieces[newY][newX] != 0) {
-            System.out.println("3");
-            return false;
-
-        }
-        if (side == 1 && boardpieces[oldY][oldX] == 'r' && newY > oldY) {
-            System.out.println("4");
-            return false;
-        }
-        if (side == 2 && boardpieces[oldY][oldX] == 'w' && newY < oldY) {
-            System.out.println("5");
-            return false;
-        }
-        if (Math.abs(oldY - newY) == 1) {
-            return true;
-        } else if (Math.abs(oldY - newY) == 2) {
-            int midX = (oldX + newX) / 2;
-            int midY = (oldY + newY) / 2;
-            if (side == 1) {
-                if (boardpieces[midY][midX] == 'w' || boardpieces[midY][midX] == 'W') {
-                    boardpieces[midY][midX] = 0;
-                    return true;
-                }
-            } else {
-                if (boardpieces[midY][midX] == 'r' || boardpieces[midY][midX] == 'R') {
-                    boardpieces[midY][midX] = 0;
-                    return true;
-                }
-            }
-        }
-        System.out.println("6");
-        return false;
-    }
-
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton endTurnButton;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel statusLabel;
-    private javax.swing.JButton surrenderButton;
-    // End of variables declaration//GEN-END:variables
-}
-
-class GameBoard extends JPanel {
-
-    char[][] boardpieces;
-    BufferedImage board;
-    BufferedImage red;
-    BufferedImage white;
-    BufferedImage redKing;
-    BufferedImage whiteKing;
-
-    public GameBoard(char[][] boardpieces) {
-        this.boardpieces = boardpieces;
-        try {
-            board = ImageIO.read(new File("res\\checkerboard.png"));
-            red = ImageIO.read(new File("res\\red.png"));
-            white = ImageIO.read(new File("res\\white.png"));
-            redKing = ImageIO.read(new File("res\\redKing.png"));
-            whiteKing = ImageIO.read(new File("res\\whiteKing.png"));
-        } catch (IOException e) {
-            System.out.println(e);
-        }
-    }
-
-    public void setBoard(char[][] boardpieces) {
-        this.boardpieces = boardpieces;
-    }
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        g.drawImage(board, 0, 0, null);
-
-        for (int i = 0; i < boardpieces.length; i++) {
-            for (int k = 0; k < boardpieces.length; k++) {
-                if (boardpieces[i][k] == 'r') {
-                    g.drawImage(red, i * 40, k * 40, null);
-                } else if (boardpieces[i][k] == 'w') {
-                    g.drawImage(white, i * 40, k * 40, null);
-                }
-            }
-        }
-
     }
 }
