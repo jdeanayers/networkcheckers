@@ -22,6 +22,7 @@ public class GameFrame extends JFrame implements Runnable {
     private int currentPieceX;
     private int currentPieceY;
     private boolean jumped;
+    private boolean moved;
 
     private char[][] boardpieces;
 
@@ -36,11 +37,11 @@ public class GameFrame extends JFrame implements Runnable {
             if (turn == 1) {
                 thisPlayerTurn = true;
                 side = 1;
-                statusLabel.setText("Opponent connected. You are Red. You go first!");
+                statusLabel.setText("You are Red. You go first!");
             } else {
                 thisPlayerTurn = false;
                 side = 2;
-                statusLabel.setText("Opponent connected. You are White. Opponent's turn!");
+                statusLabel.setText("You are White. Opponent's turn!");
             }
 
         } catch (IOException e) {
@@ -63,6 +64,7 @@ public class GameFrame extends JFrame implements Runnable {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         endTurnButton.setText("End Turn");
+        endTurnButton.setEnabled(false);
         endTurnButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 endTurnButtonActionPerformed(evt);
@@ -70,6 +72,11 @@ public class GameFrame extends JFrame implements Runnable {
         });
 
         surrenderButton.setText("Surrender");
+        surrenderButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                surrenderButtonActionPerformed(evt);
+            }
+        });
 
         statusLabel.setText("Waiting on opponent...");
 
@@ -111,9 +118,16 @@ public class GameFrame extends JFrame implements Runnable {
     private void endTurnButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_endTurnButtonActionPerformed
         if (thisPlayerTurn && currentPieceX != -1 && currentPieceY != -1) {
             thisPlayerTurn = false;
-            sendTurnData(new Action(true, 0, 0, 0, 0));
+            statusLabel.setText("Opponent's turn.");
+            sendTurnData(new Action(true, false, 0, 0, 0, 0));
+            endTurnButton.setEnabled(false);
         }
     }//GEN-LAST:event_endTurnButtonActionPerformed
+
+    private void surrenderButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_surrenderButtonActionPerformed
+        sendTurnData(new Action(false, true, 0, 0, 0, 0));
+        declareWinner(side - 1);
+    }//GEN-LAST:event_surrenderButtonActionPerformed
 
     private void initializeBoard() {
         boardpieces = new char[8][8];
@@ -166,7 +180,11 @@ public class GameFrame extends JFrame implements Runnable {
                     currentPieceX = -1;
                     currentPieceY = -1;
                     jumped = false;
+                    moved = false;
                     thisPlayerTurn = true;
+                    statusLabel.setText("Your turn!");
+                } else if (obj.surrender) {
+                    declareWinner(side);
                 } else {
                     moveOpponent(obj);
                 }
@@ -193,9 +211,17 @@ public class GameFrame extends JFrame implements Runnable {
             boardpieces[newY][newX] = movingPiece;
             currentPieceX = newX;
             currentPieceY = newY;
+            if (boardpieces[newY][newX] == 'w' && newY == 7) {
+                boardpieces[newY][newX] = 'W';
+            } else if (boardpieces[newY][newX] == 'r' && newY == 0) {
+                boardpieces[newY][newX] = 'R';
+            }
+            moved = true;
             board.setBoard(boardpieces);
             board.repaint();
-            sendTurnData(new Action(false, oldX, oldY, newX, newY));
+            sendTurnData(new Action(false, false, oldX, oldY, newX, newY));
+            endTurnButton.setEnabled(true);
+            victoryCheck();
         }
     }
 
@@ -203,12 +229,12 @@ public class GameFrame extends JFrame implements Runnable {
         char movingPiece = boardpieces[action.oldY][action.oldX];
         boardpieces[action.oldY][action.oldX] = 0;
         boardpieces[action.newY][action.newX] = movingPiece;
-        if ((action.oldY + action.newY) / 2 == 2) {
+        if (Math.abs(action.oldY - action.newY) == 2 && Math.abs(action.oldX - action.newX) == 2) {
             boardpieces[(action.oldY + action.newY) / 2][(action.oldX + action.newX) / 2] = 0;
         }
-        if (boardpieces[action.newY][action.newX] == 'w' && action.newY == 0) {
+        if (boardpieces[action.newY][action.newX] == 'w' && action.newY == 7) {
             boardpieces[action.newY][action.newX] = 'W';
-        } else if (boardpieces[action.newY][action.newX] == 'r' && action.newY == 7) {
+        } else if (boardpieces[action.newY][action.newX] == 'r' && action.newY == 0) {
             boardpieces[action.newY][action.newX] = 'R';
         }
         board.setBoard(boardpieces);
@@ -220,7 +246,10 @@ public class GameFrame extends JFrame implements Runnable {
         if (!thisPlayerTurn) {
             return false;
         }
-        if (currentPieceX != -1 && currentPieceY != -1 && currentPieceX != oldX && currentPieceY != oldY && !jumped) {
+        if (moved && !jumped) {
+            return false;
+        }
+        if (currentPieceX != -1 && currentPieceY != -1 && currentPieceX == oldX && currentPieceY == oldY && !jumped) {
             return false;
         }
         if (side == 1) {
@@ -245,20 +274,20 @@ public class GameFrame extends JFrame implements Runnable {
         if (side == 2 && boardpieces[oldY][oldX] == 'w' && newY < oldY) {
             return false;
         }
-        if (Math.abs(oldY - newY) == 1) {
-            return true;
-        } else if (Math.abs(oldY - newY) == 2) {
+        if (Math.abs(oldY - newY) == 1 && Math.abs(oldX - newX) == 1) {
+            return !jumped;
+        } else if (Math.abs(oldY - newY) == 2 && Math.abs(oldX - newX) == 2) {
             int midX = (oldX + newX) / 2;
             int midY = (oldY + newY) / 2;
             if (side == 1) {
-                if (boardpieces[oldY][oldX] == 'w' || boardpieces[oldY][oldX] == 'W') {
-                    boardpieces[oldY][oldX] = 0;
+                if (boardpieces[midY][midX] == 'w' || boardpieces[midY][midX] == 'W') {
+                    boardpieces[midY][midX] = 0;
                     jumped = true;
                     return true;
                 }
             } else {
-                if (boardpieces[oldY][oldX] == 'r' || boardpieces[oldY][oldX] == 'R') {
-                    boardpieces[oldY][oldX] = 0;
+                if (boardpieces[midY][midX] == 'r' || boardpieces[midY][midX] == 'R') {
+                    boardpieces[midY][midX] = 0;
                     jumped = true;
                     return true;
                 }
@@ -279,6 +308,22 @@ public class GameFrame extends JFrame implements Runnable {
                     wcount++;
                 }
             }
+        }
+        if (rcount == 0) {
+            declareWinner(2);
+        }
+        if (wcount == 0) {
+            declareWinner(1);
+        }
+    }
+
+    public void declareWinner(int side) {
+        endTurnButton.setEnabled(false);
+        surrenderButton.setEnabled(false);
+        if (side == 1) {
+            statusLabel.setText("Red wins!");
+        } else {
+            statusLabel.setText("White wins!");
         }
     }
 
@@ -331,6 +376,11 @@ class GameBoard extends JPanel implements MouseListener {
                     g.drawImage(red, k * 40, i * 40, null);
                 } else if (boardpieces[i][k] == 'w') {
                     g.drawImage(white, k * 40, i * 40, null);
+                }
+                if (boardpieces[i][k] == 'R') {
+                    g.drawImage(redKing, k * 40, i * 40, null);
+                } else if (boardpieces[i][k] == 'W') {
+                    g.drawImage(whiteKing, k * 40, i * 40, null);
                 }
             }
         }

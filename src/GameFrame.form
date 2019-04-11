@@ -66,6 +66,7 @@
     <Component class="javax.swing.JButton" name="endTurnButton">
       <Properties>
         <Property name="text" type="java.lang.String" value="End Turn"/>
+        <Property name="enabled" type="boolean" value="false"/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="endTurnButtonActionPerformed"/>
@@ -75,6 +76,9 @@
       <Properties>
         <Property name="text" type="java.lang.String" value="Surrender"/>
       </Properties>
+      <Events>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="surrenderButtonActionPerformed"/>
+      </Events>
     </Component>
     <Component class="javax.swing.JLabel" name="statusLabel">
       <Properties>

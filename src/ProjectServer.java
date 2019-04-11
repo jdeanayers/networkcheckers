@@ -23,7 +23,6 @@ public class ProjectServer {
         Socket passiveplayer;
         int playerturn = 1;
         try {
-            System.out.println("Running!");
             while (true) {
                 if (playerturn == 1) {
                     activeplayer = playerone;
@@ -32,7 +31,6 @@ public class ProjectServer {
                     activeplayer = playertwo;
                     passiveplayer = playerone;
                 }
-                System.out.println("Turn set");
                 Action action = null;
                 while (true) {
                     ObjectInputStream fromClient = new ObjectInputStream(activeplayer.getInputStream());
@@ -40,7 +38,6 @@ public class ProjectServer {
                     try {
                         action = (Action) fromClient.readObject();
                         if (action.endOfTurn) {
-                            System.out.println("Turn end!");
                             playerturn = playerturn == 1 ? 2 : 1;
                             toClient.writeObject(action);
                             toClient.flush();
