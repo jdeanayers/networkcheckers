@@ -14,24 +14,25 @@ import javax.imageio.ImageIO;
 public class GameFrame extends JFrame implements Runnable {
 
     private Thread thread;
-    private boolean thisPlayerTurn;
+    volatile private boolean thisPlayerTurn;
     private boolean connected;
     private Socket sock;
     private int side; //1 is Red, 2 is White
     private GameBoard board;
     private int currentPieceX;
     private int currentPieceY;
+    private boolean jumped;
 
     private char[][] boardpieces;
 
     public GameFrame(String ip) {
         initComponents();
-        /*
+
         try {
             sock = new Socket(ip, 6010);
             ObjectInputStream inputstream = new ObjectInputStream(sock.getInputStream());
             int turn = inputstream.readInt();
-           
+
             if (turn == 1) {
                 thisPlayerTurn = true;
                 side = 1;
@@ -43,10 +44,9 @@ public class GameFrame extends JFrame implements Runnable {
             }
 
         } catch (IOException e) {
+            System.out.println(e);
         }
-         */
-        thisPlayerTurn = true;
-        side = 1;
+        readyGame();
         thread = new Thread(this);
         thread.start();
     }
@@ -63,6 +63,11 @@ public class GameFrame extends JFrame implements Runnable {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         endTurnButton.setText("End Turn");
+        endTurnButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                endTurnButtonActionPerformed(evt);
+            }
+        });
 
         surrenderButton.setText("Surrender");
 
@@ -103,6 +108,13 @@ public class GameFrame extends JFrame implements Runnable {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private void endTurnButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_endTurnButtonActionPerformed
+        if (thisPlayerTurn && currentPieceX != -1 && currentPieceY != -1) {
+            thisPlayerTurn = false;
+            sendTurnData(new Action(true, 0, 0, 0, 0));
+        }
+    }//GEN-LAST:event_endTurnButtonActionPerformed
+
     private void initializeBoard() {
         boardpieces = new char[8][8];
         //r represents red piece, R represents kinged red piece, 
@@ -126,19 +138,23 @@ public class GameFrame extends JFrame implements Runnable {
         for (int i = 0; i < 8; i += 2) {
             boardpieces[5][i] = 'r';
         }
+        currentPieceX = -1;
+        currentPieceY = -1;
     }
 
     public void run() {
+        while (true) {
+            checkOpponentAction();
+        }
+    }
+
+    public void readyGame() {
         initializeBoard();
         board = new GameBoard(boardpieces, this);
         board.setVisible(true);
         board.setBounds(0, 0, 320, 320);
         add(board);
         board.repaint();
-
-        while (true) {
-            //checkOpponentAction();
-        }
     }
 
     private void checkOpponentAction() {
@@ -146,6 +162,14 @@ public class GameFrame extends JFrame implements Runnable {
             try {
                 ObjectInputStream inputstream = new ObjectInputStream(sock.getInputStream());
                 Action obj = (Action) inputstream.readObject();
+                if (obj.endOfTurn) {
+                    currentPieceX = -1;
+                    currentPieceY = -1;
+                    jumped = false;
+                    thisPlayerTurn = true;
+                } else {
+                    moveOpponent(obj);
+                }
             } catch (Exception e) {
                 System.out.println(e);
             }
@@ -171,17 +195,46 @@ public class GameFrame extends JFrame implements Runnable {
             currentPieceY = newY;
             board.setBoard(boardpieces);
             board.repaint();
+            sendTurnData(new Action(false, oldX, oldY, newX, newY));
         }
+    }
+
+    public void moveOpponent(Action action) {
+        char movingPiece = boardpieces[action.oldY][action.oldX];
+        boardpieces[action.oldY][action.oldX] = 0;
+        boardpieces[action.newY][action.newX] = movingPiece;
+        if ((action.oldY + action.newY) / 2 == 2) {
+            boardpieces[(action.oldY + action.newY) / 2][(action.oldX + action.newX) / 2] = 0;
+        }
+        if (boardpieces[action.newY][action.newX] == 'w' && action.newY == 0) {
+            boardpieces[action.newY][action.newX] = 'W';
+        } else if (boardpieces[action.newY][action.newX] == 'r' && action.newY == 7) {
+            boardpieces[action.newY][action.newX] = 'R';
+        }
+        board.setBoard(boardpieces);
+        board.repaint();
+        victoryCheck();
     }
 
     public boolean checkIfLegitMove(int oldX, int oldY, int newX, int newY) {
         if (!thisPlayerTurn) {
             return false;
         }
+        if (currentPieceX != -1 && currentPieceY != -1 && currentPieceX != oldX && currentPieceY != oldY && !jumped) {
+            return false;
+        }
+        if (side == 1) {
+            if (boardpieces[oldY][oldX] == 'w' || boardpieces[oldY][oldX] == 'W') {
+                return false;
+            }
+        } else {
+            if (boardpieces[oldY][oldX] == 'r' || boardpieces[oldY][oldX] == 'R') {
+                return false;
+            }
+        }
         if (oldX == newX) {
             return false;
         }
-        System.out.println(boardpieces[oldY][oldX]);
         if (boardpieces[oldY][oldX] == 0) {
             return false;
 
@@ -200,16 +253,33 @@ public class GameFrame extends JFrame implements Runnable {
             if (side == 1) {
                 if (boardpieces[oldY][oldX] == 'w' || boardpieces[oldY][oldX] == 'W') {
                     boardpieces[oldY][oldX] = 0;
+                    jumped = true;
                     return true;
                 }
             } else {
                 if (boardpieces[oldY][oldX] == 'r' || boardpieces[oldY][oldX] == 'R') {
                     boardpieces[oldY][oldX] = 0;
+                    jumped = true;
                     return true;
                 }
             }
         }
         return false;
+    }
+
+    public void victoryCheck() {
+        int rcount = 0;
+        int wcount = 0;
+        for (int i = 0; i < boardpieces.length; i++) {
+            for (int k = 0; k < boardpieces.length; k++) {
+                if (boardpieces[i][k] == 'r' || boardpieces[i][k] == 'R') {
+                    rcount++;
+                }
+                if (boardpieces[i][k] == 'w' || boardpieces[i][k] == 'W') {
+                    wcount++;
+                }
+            }
+        }
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -269,7 +339,7 @@ class GameBoard extends JPanel implements MouseListener {
 
     @Override
     public void mouseClicked(MouseEvent me) {
-        
+
     }
 
     @Override

@@ -32,14 +32,23 @@ public class ProjectServer {
                     activeplayer = playertwo;
                     passiveplayer = playerone;
                 }
+                System.out.println("Turn set");
                 Action action = null;
                 while (true) {
                     ObjectInputStream fromClient = new ObjectInputStream(activeplayer.getInputStream());
                     toClient = new ObjectOutputStream(passiveplayer.getOutputStream());
                     try {
                         action = (Action) fromClient.readObject();
-                        toClient.writeObject(action);
-                        toClient.flush();
+                        if (action.endOfTurn) {
+                            System.out.println("Turn end!");
+                            playerturn = playerturn == 1 ? 2 : 1;
+                            toClient.writeObject(action);
+                            toClient.flush();
+                            break;
+                        } else {
+                            toClient.writeObject(action);
+                            toClient.flush();
+                        }
                     } catch (Exception e) {
                         System.out.println(e);
                     }

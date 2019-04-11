@@ -4,9 +4,16 @@ import java.io.Serializable;
 class Action implements Serializable {
 
     public boolean endOfTurn;
-    public String blah;
+    public int oldX;
+    public int oldY;
+    public int newX;
+    public int newY;
 
-    public Action(String s) {
-        blah = s;
+    public Action(boolean eot, int ox, int oy, int nx, int ny) {
+        endOfTurn = eot;
+        oldX = ox;
+        oldY = oy;
+        newX = nx;
+        newY = ny;
     }
 }
