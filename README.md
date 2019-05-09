@@ -1,3 +1,3 @@
-<h1>cosc318project</h1>
+<h1>Network Checkers</h1>
 
-A two player game of checkers that was created for a Network Programming class.
+A simple two player game of checkers that was created for COSC318 - Network Programming.
